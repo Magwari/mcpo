@@ -4,9 +4,23 @@ import logging
 import time
 from pathlib import Path
 from typing import Callable, Optional, Dict, Any
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileMovedEvent, FileCreatedEvent
 import threading
+
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileMovedEvent, FileCreatedEvent
+    _WATCHDOG_AVAILABLE = True
+except ImportError:
+    _WATCHDOG_AVAILABLE = False
+    Observer = None  # type: ignore
+
+    class FileSystemEventHandler:  # type: ignore
+        """Fallback base class when watchdog is not installed."""
+        pass
+
+    FileModifiedEvent = None  # type: ignore
+    FileMovedEvent = None  # type: ignore
+    FileCreatedEvent = None  # type: ignore
 
 
 logger = logging.getLogger(__name__)
@@ -133,6 +147,13 @@ class ConfigWatcher:
 
     def start(self):
         """Start watching the config file."""
+        if not _WATCHDOG_AVAILABLE:
+            logger.error("watchdog is not installed. Install it with: pip install watchdog")
+            raise RuntimeError(
+                "The 'watchdog' package is required for hot-reload but is not installed. "
+                "Install it with: pip install watchdog"
+            )
+
         if not self.config_path.exists():
             logger.error(f"Config file does not exist: {self.config_path}")
             return

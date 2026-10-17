@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from mcp.client.auth import OAuthClientProvider, TokenStorage
-from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
+from mcp.shared.auth import AuthorizationCodeResult, OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
 from pydantic import AnyUrl
 
 logger = logging.getLogger(__name__)
@@ -264,11 +264,11 @@ async def create_oauth_provider(
             logger.info(f"Opening browser for OAuth: {url}")
             webbrowser.open(url)
             
-        async def callback_handler() -> Tuple[str, Optional[str]]:
+        async def callback_handler() -> AuthorizationCodeResult:
             callback_server.start()
             try:
                 code = callback_server.wait_code()
-                return code, callback_server.state()
+                return AuthorizationCodeResult(code=code, state=callback_server.state())
             finally:
                 callback_server.stop()
     else:
@@ -276,14 +276,14 @@ async def create_oauth_provider(
         async def redirect_handler(url: str) -> None:
             print(f"\n\nPlease visit this URL to authorize:\n{url}\n")
             
-        async def callback_handler() -> Tuple[str, Optional[str]]:
+        async def callback_handler() -> AuthorizationCodeResult:
             callback_url = input("Paste the callback URL here: ")
             q = parse_qs(urlparse(callback_url).query)
             code = q.get("code", [None])[0]
             state = q.get("state", [None])[0]
             if not code:
                 raise ValueError("No authorization code found in callback URL")
-            return code, state
+            return AuthorizationCodeResult(code=code, state=state)
     
     return OAuthClientProvider(
         server_url=server_url,

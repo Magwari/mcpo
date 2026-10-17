@@ -4,7 +4,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import base64
 
-from passlib.context import CryptContext
 from datetime import UTC, datetime, timedelta
 
 import jwt

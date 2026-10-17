@@ -248,7 +248,8 @@ def test_multi_type_property_with_list():
     )
 
     # Check if the resulting type is a Union
-    assert str(result_type).startswith("typing.Union[")
+    # (Python 3.14+ renders unions as 'str | float', earlier as 'typing.Union[str, float]')
+    assert result_type in (str | float, Union[str, float])
 
     # Check if both types are in the Union
     assert str in result_type.__args__
